@@ -1,2 +1,7 @@
 # aoc-2023
-Advent of Code 2023
+
+Solutions for [Advent of Code 2023](https://adventofcode.com/2023) in a couple of differen languages:
+
+| Day  | Languages     |
+| ---: | ------------- |
+| 1    | Rust, Nushell |
