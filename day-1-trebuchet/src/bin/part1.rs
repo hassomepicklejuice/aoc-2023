@@ -1,4 +1,15 @@
-fn main() {}
+use std::{
+    error::Error,
+    io::{stdin, Read},
+};
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut input = String::new();
+    stdin().read_to_string(&mut input)?;
+    let output = calibration_value(&input).ok_or("No calibration value")?;
+    println!("{output}");
+    Ok(())
+}
 
 fn calibration_value(input: &str) -> Option<usize> {
     Some(
