@@ -4,6 +4,8 @@ fn main() {
     let input = io::read_to_string(io::stdin()).unwrap();
     let output1 = part1(&input);
     println!("part1:\t{output1}");
+    let output2 = part2(&input);
+    println!("part2:\t{output2}");
 }
 
 /// (value, row, start, end)
@@ -39,10 +41,8 @@ fn part2(input: &str) -> usize {
     for (sym, row, col) in syms.into_iter().filter(|(s, _, _)| *s == '*') {
         let mut num_count = 0;
         let mut gear_ratio = 1;
-        dbg!(&(sym, row, col));
         for (num, r, s, e) in nums.iter() {
-            if row.max(*r) - row.min(*r) <= 1 && col >= s.wrapping_sub(1) && col <= e + 1 {
-                dbg!(&((num, r, s, e), num_count, gear_ratio));
+            if (row.max(*r) - row.min(*r)) <= 1 && col >= s.saturating_sub(1) && col <= *e {
                 num_count += 1;
                 gear_ratio *= num;
             }
@@ -51,7 +51,6 @@ fn part2(input: &str) -> usize {
             sum += gear_ratio;
         }
     }
-
     sum
 }
 
