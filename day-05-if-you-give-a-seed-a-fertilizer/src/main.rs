@@ -103,6 +103,8 @@ fn part2(input: &str) -> usize {
         .flat_map(|r| r[0]..(r[0] + r[1]));
 
     // Very slow -> create a single map from seed to location
+    // or reverse mapping?
+    // or boundary mapping/analysis
     let maps: Vec<Map> = blocks.map(Map::from_block).map(|(_, _, map)| map).collect();
 
     seeds
