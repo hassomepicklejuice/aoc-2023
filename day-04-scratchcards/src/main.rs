@@ -1,8 +1,9 @@
-use std::io;
+use anyhow::{anyhow, Error, Result};
+use std::{io, iter::repeat, str::FromStr};
 
 fn main() {
     let input = io::read_to_string(io::stdin()).unwrap();
-    let output = part2(&input);
+    let output = part2(&input).unwrap();
     println!("part2:\t{output}");
 }
 
@@ -11,30 +12,69 @@ struct Card {
     id: usize,
     winning: Vec<usize>,
     nums: Vec<usize>,
+    win_count: Option<usize>,
 }
 
-fn parse_input(input: &str) -> Vec<Card> {
-    input
-        .lines()
-        .map(|line| {
-            let (card, nums) = line.split_once(':').unwrap();
-            let id: usize = card.split_once(' ').unwrap().1.trim().parse().unwrap();
-            let (winning, nums) = nums.split_once('|').unwrap();
-            let winning: Vec<usize> = winning
-                .split_whitespace()
-                .map(|n| n.parse().unwrap())
-                .collect();
-            let nums: Vec<usize> = nums
-                .split_whitespace()
-                .map(|n| n.parse().unwrap())
-                .collect();
-            Card { id, winning, nums }
+impl Card {
+    fn win_count(&mut self) -> usize {
+        if let Some(wc) = self.win_count {
+            wc
+        } else {
+            let wc = self
+                .winning
+                .iter()
+                .filter(|n| self.nums.contains(n))
+                .count();
+            self.win_count = Some(wc);
+            wc
+        }
+    }
+}
+
+impl FromStr for Card {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (card, nums) = s.split_once(": ").ok_or(anyhow!("Invalid line {s:?}"))?;
+        let id: usize = card
+            .split_whitespace()
+            .nth(1)
+            .ok_or(anyhow!("Invalid line {s:?}"))?
+            .parse()?;
+        let (winning, nums) = nums
+            .split_once(" | ")
+            .ok_or(anyhow!("Invalid line {s:?}"))?;
+        let winning = winning.split_whitespace().flat_map(|n| n.parse()).collect();
+        let nums = nums.split_whitespace().flat_map(|n| n.parse()).collect();
+        Ok(Self {
+            id,
+            winning,
+            nums,
+            win_count: None,
         })
-        .collect()
+    }
 }
 
-fn part2(input: &str) -> usize {
-    let mut input = parse_input(input);
+fn parse_input(input: &str) -> Result<Vec<Card>> {
+    input.lines().map(FromStr::from_str).collect()
+}
+
+fn part2(input: &str) -> Result<usize> {
+    let input = parse_input(input)?;
+    let mut cards: Vec<(Card, usize)> = input.into_iter().zip(repeat(1)).collect();
+    for idx in 0..cards.len() {
+        let (card, count) = &mut cards[idx];
+        let wc = card.win_count();
+        let count = *count;
+        cards[idx + 1..idx + 1 + wc]
+            .iter_mut()
+            .for_each(|(_, n)| *n += count);
+    }
+    Ok(cards.into_iter().map(|(_, count)| count).sum())
+}
+
+fn _part2(input: &str) -> usize {
+    let mut input = parse_input(input).unwrap();
     let original = input.clone();
     let mut idx = 0;
     while idx < input.len() {
@@ -59,7 +99,7 @@ Card 4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83
 Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
 Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11";
 
-    let output = part2(example);
+    let output = part2(example).expect("30");
 
     assert_eq!(output, 30);
 }
