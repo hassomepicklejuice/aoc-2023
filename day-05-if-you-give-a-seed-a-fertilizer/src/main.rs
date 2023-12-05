@@ -4,18 +4,18 @@ fn main() {
     let input = io::read_to_string(io::stdin()).unwrap();
     let output = part1(&input);
     println!("part1: {output}");
-    let output = part2(&input);
-    println!("part2: {output}");
+    // let output = part2(&input);
+    // println!("part2: {output}");
 }
 
-#[derive(Debug)]
-struct Range {
-    dest_start: usize,
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+struct RangeMap {
     source_start: usize,
     range_len: usize,
+    dest_start: usize,
 }
 
-impl Range {
+impl RangeMap {
     fn map(&self, source: usize) -> Option<usize> {
         let diff = source.wrapping_sub(self.source_start);
         if diff < self.range_len {
@@ -36,23 +36,43 @@ impl Range {
 
 #[derive(Debug)]
 struct Map {
-    ranges: Vec<Range>,
+    ranges: Vec<RangeMap>,
 }
 
 impl Map {
-    fn get_mapped(&self, source: usize) -> usize {
+    fn sort_unstable(&mut self) {
+        self.ranges.sort_unstable();
+    }
+    fn map_val(&self, source: usize) -> usize {
         self.ranges
             .iter()
             .flat_map(|r| r.map(source))
             .next()
             .unwrap_or(source)
     }
+    /// Assumes sorted ranges.
+    fn map_ranges(&self, other: &Self) -> Self {
+        let mut ranges = Vec::with_capacity(other.ranges.len());
+        for range in other.ranges.iter() {
+            dbg!(&range);
+            let res = self.ranges.binary_search(&range).unwrap_or_else(|n| n - 1);
+            let lower = &self.ranges[res];
+            dbg!(lower);
+        }
+        Self { ranges }
+    }
     fn from_block(input: &str) -> (&str, &str, Self) {
         let mut lines = input.lines();
         let (kind, _) = lines.next().unwrap().split_once(' ').unwrap();
         let (source, dest) = kind.split_once("-to-").unwrap();
-        let ranges = lines.map(Range::from_line).collect();
-        (source, dest, Map { ranges })
+        let mut map = Self {
+            ranges: lines.map(RangeMap::from_line).collect(),
+        };
+        map.sort_unstable();
+        (source, dest, map)
+    }
+    fn min(&self) -> usize {
+        todo!()
     }
 }
 
@@ -76,7 +96,7 @@ fn part1(input: &str) -> usize {
         .map(|mut s| {
             let mut curr_cat = "seed";
             while let Some((dest, map)) = maps.get(curr_cat) {
-                s = map.get_mapped(s);
+                s = map.map_val(s);
                 curr_cat = dest;
             }
             s
@@ -97,10 +117,41 @@ fn part2(input: &str) -> usize {
         .flat_map(FromStr::from_str)
         .collect::<Vec<usize>>();
 
-    let seeds = seeds
+    let seeds: Vec<RangeMap> = seeds
         .chunks(2)
-        .inspect(|r| eprintln!("seed range: {r:?}"))
-        .flat_map(|r| r[0]..(r[0] + r[1]));
+        .map(|r| RangeMap {
+            dest_start: r[0],
+            source_start: r[0],
+            range_len: r[1],
+        })
+        .collect();
+    let mut seeds: Map = Map { ranges: seeds };
+
+    // Very slow -> create a single map from seed to location
+    // or reverse mapping?
+    // or boundary mapping/analysis
+    let maps: Vec<Map> = blocks.map(Map::from_block).map(|(_, _, map)| map).collect();
+
+    for map in maps {
+        seeds = map.map_ranges(&seeds);
+    }
+
+    seeds.min()
+}
+
+fn _part2(input: &str) -> usize {
+    let mut blocks = input.split("\n\n");
+    let seeds = blocks.next().unwrap();
+
+    let seeds = seeds
+        .split_once(": ")
+        .unwrap()
+        .1
+        .split_whitespace()
+        .flat_map(FromStr::from_str)
+        .collect::<Vec<usize>>();
+
+    let seeds = seeds.chunks(2).flat_map(|r| r[0]..(r[0] + r[1]));
 
     // Very slow -> create a single map from seed to location
     // or reverse mapping?
@@ -110,7 +161,7 @@ fn part2(input: &str) -> usize {
     seeds
         .map(|mut s| {
             for map in maps.iter() {
-                s = map.get_mapped(s);
+                s = map.map_val(s);
             }
             s
         })
