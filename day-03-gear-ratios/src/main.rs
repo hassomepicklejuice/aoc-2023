@@ -8,24 +8,31 @@ fn main() {
     println!("part2:\t{output2}");
 }
 
-/// (value, row, start, end)
-type Number = (usize, usize, usize, usize);
+struct _Number {
+    value: usize,
+    row: usize,
+    start: usize,
+    end: usize,
+}
 
-/// (value, row, col)
-type Symbol = (char, usize, usize);
+struct _Symbol {
+    value: char,
+    row: usize,
+    col: usize,
+}
 
 fn part1(input: &str) -> usize {
     let (nums, syms) = parse_input(input);
     let syms: HashMap<_, _> = syms
         .into_iter()
-        .map(|(val, row, col)| ((row, col), val))
+        .map(|_Symbol { value, row, col }| ((row, col), value))
         .collect();
     let mut sum = 0;
-    'outer: for (val, row, start, end) in nums {
-        for i in row.saturating_sub(1)..=(row + 1) {
-            for j in start.saturating_sub(1)..(end + 1) {
+    'outer: for num in nums {
+        for i in num.row.saturating_sub(1)..=(num.row + 1) {
+            for j in num.start.saturating_sub(1)..(num.end + 1) {
                 if syms.get(&(i, j)).is_some() {
-                    sum += val;
+                    sum += num.value;
                     continue 'outer;
                 }
             }
@@ -38,13 +45,16 @@ fn part2(input: &str) -> usize {
     let (nums, syms) = parse_input(input);
     let mut sum = 0;
 
-    for (sym, row, col) in syms.into_iter().filter(|(s, _, _)| *s == '*') {
+    for sym in syms.into_iter().filter(|s| s.value == '*') {
         let mut num_count = 0;
         let mut gear_ratio = 1;
-        for (num, r, s, e) in nums.iter() {
-            if (row.max(*r) - row.min(*r)) <= 1 && col >= s.saturating_sub(1) && col <= *e {
+        for num in nums.iter() {
+            if (sym.row.max(num.row) - sym.row.min(num.row)) <= 1
+                && sym.col >= num.start.saturating_sub(1)
+                && sym.col <= num.end
+            {
                 num_count += 1;
-                gear_ratio *= num;
+                gear_ratio *= num.value;
             }
         }
         if num_count == 2 {
@@ -54,7 +64,7 @@ fn part2(input: &str) -> usize {
     sum
 }
 
-fn parse_input(input: &str) -> (Vec<Number>, Vec<Symbol>) {
+fn parse_input(input: &str) -> (Vec<_Number>, Vec<_Symbol>) {
     let mut nums = vec![];
     let mut syms = vec![];
     for (row, line) in input.lines().enumerate() {
@@ -76,11 +86,20 @@ fn parse_input(input: &str) -> (Vec<Number>, Vec<Symbol>) {
                 }
                 acc
             });
-        for (idx, s) in tokens.into_iter().filter(|(_, s)| !s.is_empty()) {
+        for (col, s) in tokens.into_iter().filter(|(_, s)| !s.is_empty()) {
             if s.chars().next().is_some_and(|c| c.is_ascii_digit()) {
-                nums.push((s.parse().unwrap(), row, idx, idx + s.len()));
+                nums.push(_Number {
+                    value: s.parse().unwrap(),
+                    row,
+                    start: col,
+                    end: col + s.len(),
+                });
             } else {
-                syms.push((s.chars().next().unwrap(), row, idx));
+                syms.push(_Symbol {
+                    value: s.chars().next().unwrap(),
+                    row,
+                    col,
+                });
             }
         }
     }
