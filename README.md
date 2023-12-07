@@ -10,3 +10,4 @@ Solutions for [Advent of Code 2023](https://adventofcode.com/2023) in a couple o
 | 4    | Rust                 |
 | 5    | Rust                 |
 | 6    | Nushell, (Math)      |
+| 7    | Rust                 |
