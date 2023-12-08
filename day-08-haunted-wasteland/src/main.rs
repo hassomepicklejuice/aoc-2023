@@ -44,11 +44,46 @@ fn part1(input: &str) -> usize {
             _ => unreachable!(),
         }
     }
-    todo!()
+    unreachable!()
 }
 
-fn part2(input: &str) -> () {
-    todo!()
+fn part2(input: &str) -> usize {
+    let (instructions, map) = parse(input);
+    let startings: Vec<_> = map
+        .keys()
+        .copied()
+        .filter(|pos| pos.ends_with('A'))
+        .collect();
+    startings
+        .into_iter()
+        .map(|mut curr| {
+            dbg!(&curr);
+            for (idx, inst) in instructions.chars().cycle().enumerate() {
+                if curr.ends_with('Z') {
+                    return idx;
+                }
+                let (left, right) = map[curr];
+                curr = match inst {
+                    'L' => left,
+                    'R' => right,
+                    _ => unreachable!(),
+                }
+            }
+            unreachable!()
+        })
+        .fold(1, lcm)
+}
+
+fn lcm(a: usize, b: usize) -> usize {
+    a * (b / gcd(a, b))
+}
+
+fn gcd(a: usize, b: usize) -> usize {
+    if b == 0 {
+        a
+    } else {
+        gcd(b, a % b)
+    }
 }
 
 #[test]
