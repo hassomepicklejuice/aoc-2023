@@ -1,0 +1,7 @@
+name = "Day9"
+uuid = "865dcc80-b219-4f32-a9bd-a0668bd9e6af"
+authors = ["hassomepicklejuice <hassomepicklejuice@proton.me>"]
+version = "0.1.0"
+
+[deps]
+Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
