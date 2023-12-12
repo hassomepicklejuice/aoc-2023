@@ -2,6 +2,8 @@ fn main() {
     let input = std::io::read_to_string(std::io::stdin()).unwrap();
     let output = part1(&input);
     println!("part1:\t{output}");
+    let output = part2(&input, 1000000);
+    println!("part2:\t{output}");
 }
 
 fn part1(input: &str) -> usize {
@@ -64,7 +66,7 @@ fn pretty(v: &[Vec<u8>]) {
     eprintln!();
 }
 
-fn part2(input: &str) -> usize {
+fn part2(input: &str, expansion: usize) -> usize {
     let mut galaxies: Vec<(usize, usize)> = input
         .lines()
         .enumerate()
@@ -73,7 +75,56 @@ fn part2(input: &str) -> usize {
                 .filter_map(move |(c, ch)| if ch == '#' { Some((r, c)) } else { None })
         })
         .collect();
-    todo!();
+
+    let rows: Vec<usize> = input
+        .lines()
+        .enumerate()
+        .filter_map(|(r, line)| {
+            if line.chars().all(|ch| ch == '.') {
+                Some(r)
+            } else {
+                None
+            }
+        })
+        .collect();
+    let cols: Vec<usize> = (0..input.lines().next().unwrap().len())
+        .into_iter()
+        .filter_map(|c| {
+            if input
+                .lines()
+                .map(|line| line.as_bytes()[c])
+                .all(|ch| ch == b'.')
+            {
+                Some(c)
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    for row in rows.into_iter().rev() {
+        galaxies.iter_mut().for_each(|(r, _c)| {
+            if *r > row {
+                *r += expansion - 1;
+            }
+        });
+    }
+    for col in cols.into_iter().rev() {
+        galaxies.iter_mut().for_each(|(_r, c)| {
+            if *c > col {
+                *c += expansion - 1;
+            }
+        });
+    }
+
+    let mut distances = vec![];
+    for (i, g1) in galaxies.iter().enumerate() {
+        for g2 in galaxies[(i + 1)..].iter() {
+            let diff = g1.0.abs_diff(g2.0) + g1.1.abs_diff(g2.1);
+            distances.push(diff);
+        }
+    }
+    distances.into_iter().sum()
 }
 
 const EXAMPLE: &'static str = "...#......
@@ -91,4 +142,10 @@ const EXAMPLE: &'static str = "...#......
 fn test1() {
     let output = part1(EXAMPLE);
     assert_eq!(output, 374);
+}
+
+#[test]
+fn test2() {
+    let output = part2(EXAMPLE, 100);
+    assert_eq!(output, 8410);
 }
