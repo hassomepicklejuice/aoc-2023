@@ -1,4 +1,4 @@
-use std::{fmt::Display, io, str::FromStr};
+use std::{collections::HashMap, fmt::Display, io, str::FromStr};
 
 fn main() {
     let input = io::read_to_string(io::stdin()).unwrap();
@@ -8,7 +8,7 @@ fn main() {
     println!("part2:\t{output}");
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum State {
     Off,
     Unknown,
@@ -74,7 +74,9 @@ fn part1(input: &str) -> usize {
         })
         .collect();
 
-    rows.into_iter().map(|(row, nums)| count(&row, &nums)).sum()
+    rows.into_iter()
+        .map(|(row, nums)| count(&mut HashMap::new(), row, nums))
+        .sum()
 }
 
 fn part2(input: &str) -> usize {
@@ -92,7 +94,9 @@ fn part2(input: &str) -> usize {
         })
         .collect();
 
-    rows.into_iter().map(|(row, nums)| count(&row, &nums)).sum()
+    rows.into_iter()
+        .map(|(row, nums)| count(&mut HashMap::new(), row, nums))
+        .sum()
 }
 
 /// Whether or not the given block-length `n` fits at the beginning of the row:
@@ -125,7 +129,14 @@ fn match_beginning(row: &[State], n: usize) -> bool {
 /// r[0]   = '?'               -> count(r[1..], ns) + count(['#'] ++ r[1..], ns)
 ///                            // skip first        + include first
 /// ```
-fn count(row: &[State], nums: &[usize]) -> usize {
+fn count(
+    cache: &mut HashMap<(Vec<State>, Vec<usize>), usize>,
+    row: Vec<State>,
+    nums: Vec<usize>,
+) -> usize {
+    if let Some(res) = cache.get(&(row.clone(), nums.clone())).copied() {
+        return res;
+    };
     let total: usize = nums.iter().sum();
     let minimum = row.iter().filter(|x| matches!(x, State::Off)).count();
     let maximum = row
@@ -133,29 +144,36 @@ fn count(row: &[State], nums: &[usize]) -> usize {
         .filter(|x| matches!(x, State::Off | State::Unknown))
         .count();
     if minimum > total || maximum < total {
+        cache.insert((row, nums), 0);
         return 0;
     }
     if total == 0 {
+        cache.insert((row, nums), 1);
         return 1;
     }
     match row[0] {
-        State::On => count(&row[1..], nums),
+        State::On => count(cache, row[1..].to_vec(), nums),
         State::Off => {
             let l = nums[0];
-            if match_beginning(row, l) {
+            if match_beginning(&row, l) {
                 if l == row.len() {
+                    cache.insert((row, nums), 1);
                     1
                 } else {
-                    count(&row[l + 1..], &nums[1..])
+                    count(cache, row[l + 1..].to_vec(), nums[1..].to_vec())
                 }
             } else {
+                cache.insert((row, nums), 0);
                 0
             }
         }
         _ => {
             let mut updated = row.to_vec();
             updated[0] = State::Off;
-            count(&row[1..], nums) + count(&updated, nums)
+            let res =
+                count(cache, row[1..].to_vec(), nums.clone()) + count(cache, updated, nums.clone());
+            cache.insert((row, nums), res);
+            res
         }
     }
 }
